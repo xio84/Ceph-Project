@@ -42,7 +42,7 @@ public class FirstFragment extends Fragment {
     private FragmentFirstBinding binding;
     SharedPreferences sharedPref;
 
-    private static class Startup extends AsyncTask<Void, Void, Void> {
+    private class Startup extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... params) {
             // this method is executed in a background thread
@@ -56,7 +56,14 @@ public class FirstFragment extends Fragment {
             out += Command.executeCommand(new String[]{"su", "-c", "rm -r /mnt/CephMount"});
             out += Command.executeCommand(new String[]{"su", "-c", "mkdir -p /mnt/runtime/write/emulated/0/CephMount"});
             out += Command.executeCommand(new String[]{"su", "-c", "mkdir -p /mnt/CephMount"});
-            out += Command.executeCommand(new String[]{"su", "-c", "busybox mount -t ceph 34.121.173.162:/ /mnt/CephMount -o name=oksi,secret=AQDm3+Zg71Q8CxAANUonceGAD0JwizEINQRQ8A==,context=u:object_r:sdcardfs:s0"});
+            String mainCommand = "busybox mount -t ceph "
+                    + sharedPref.getString("target", "None")
+                    + ":/ /mnt/CephMount -o name="
+                    + sharedPref.getString("user", "None")
+                    + ",secret=" + sharedPref.getString("key", "None")
+                    + ",context=u:object_r:sdcardfs:s0";
+            Log.d("DEBUG", mainCommand);
+            out += Command.executeCommand(new String[]{"su", "-c", mainCommand});
             out += Command.executeCommand(new String[]{"su", "-c", "mount -t sdcardfs -o nosuid,nodev,noexec,noatime,mask=7,gid=9997 /mnt/CephMount /mnt/runtime/write/emulated/0/CephMount"});
             Log.d("DEBUG", out);
             return null;
@@ -86,10 +93,12 @@ public class FirstFragment extends Fragment {
                 // Instantiate the RequestQueue.
                 RequestQueue queue = Volley.newRequestQueue(ctx);
                 EditText txt = requireView().findViewById(R.id.IPaddr);
-                String cephURL = "http://" + txt.getText().toString();
+                String cephURL = txt.getText().toString().replaceAll("\\s", "");
+                sharedPref.edit().putString("target", cephURL).apply();
 
                 txt = requireView().findViewById(R.id.Username);
-                String url = cephURL + ":2480/user/" + txt.getText().toString();
+                sharedPref.edit().putString("user", txt.getText().toString().replaceAll("\\s", "")).apply();
+                String url = "http://" + cephURL + ":2480/user/" + txt.getText().toString();
                 Log.d("DEBUG", "URL: " + url);
 
                 if (ContextCompat.checkSelfPermission(
@@ -102,8 +111,10 @@ public class FirstFragment extends Fragment {
                                 @Override
                                 public void onResponse(String response) {
                                     // Display the first 20 characters of the response string.
-                                    Log.d("DEBUG", response.substring(0,20));
-                                    Snackbar.make(view, "Target: " + cephURL + " is ready to mount!", Snackbar.LENGTH_LONG)
+                                    String key = response;
+                                    Log.d("DEBUG", key);
+                                    sharedPref.edit().putString("key", key.replaceAll("\\s", "")).apply();
+                                    Snackbar.make(view, "Target: " + sharedPref.getString("target", "None") + " is ready to mount!", Snackbar.LENGTH_LONG)
                                             .setAction("Action", null).show();
                                 }
                             }, new Response.ErrorListener() {

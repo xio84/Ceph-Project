@@ -17,7 +17,7 @@ public class SecondFragment extends Fragment {
 
     private FragmentSecondBinding binding;
 
-    private static class Startup extends AsyncTask<Void, Void, Void> {
+    private class Startup extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... params) {
             // this method is executed in a background thread
